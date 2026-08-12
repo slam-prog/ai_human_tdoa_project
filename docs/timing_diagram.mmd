@@ -1,0 +1,33 @@
+sequenceDiagram
+
+    participant A as Arduino
+    participant G as Record Gates
+    participant R as Record Heads
+    participant T as Tape Frame
+    participant P as Playback Heads
+    participant E as Energy Processor
+    participant X as Erase Heads
+
+    Note over A,X: بداية إطار جديد
+
+    A->>G: Gate = HIGH
+    G->>R: فتح التسجيل للقناتين
+    R->>T: تسجيل Mic 1 وMic 2 في نفس اللحظة
+
+    Note over T: Audio Frame
+
+    A->>G: Gate = LOW
+    G->>R: إيقاف التسجيل
+    Note over T: Guard Gap
+
+    T->>P: وصول الإطار بعد زمن البفر
+    P->>E: إرسال القناتين
+    E->>E: طرح V1 - V2
+    E->>E: تربيع الفرق
+    E->>E: تكامل الطاقة
+    E->>E: تثبيت نتيجة الإطار
+
+    E->>X: الإطار تمت معالجته
+    X->>T: محو Track 1 وTrack 2
+
+    Note over T: المنطقة جاهزة للدورة التالية

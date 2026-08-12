@@ -1,0 +1,446 @@
+"""
+المحاكاة التناظرية الكاملة.
+
+النموذج:
+
+    مصدر مستمر
+        ↓
+    قناتان تناظريتان
+        ↓
+    تأخير حقيقي في القناة الثانية
+        ↓
+    طرح مع تأخير متغير
+        ↓
+    تكامل طاقة الفرق
+        ↓
+    اختيار أقل طاقة
+        ↓
+    تقدير التأخير وخطأ المسافة
+
+النموذج الحالي لا يستخدم مرشحات،
+حتى نختبر الخوارزمية الأساسية بصورة مستقلة.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import numpy as np
+
+from .analog_channel_model import (
+    AnalogChannelConfig,
+    apply_analog_channel,
+)
+
+from .analog_signal_model import (
+    DEFAULT_SIGNAL_CONFIG,
+    SignalConfig,
+    create_time_axis,
+    generate_continuous_signal,
+)
+
+from .metrics import (
+    calculate_metrics,
+    print_metrics,
+)
+
+from .residual_energy import (
+    ResidualSearchResult,
+    search_minimum_residual,
+)
+
+
+SPEED_OF_SOUND = 343.0
+
+
+@dataclass(frozen=True)
+class AnalogSimulationConfig:
+    """إعدادات المحاكاة التناظرية."""
+
+    duration_seconds: float = (
+        DEFAULT_SIGNAL_CONFIG.duration
+    )
+
+    numerical_points: int = 40_000
+
+    min_true_delay_seconds: float = 5.0e-6
+    max_true_delay_seconds: float = 20.0e-6
+
+    min_search_delay_seconds: float = 0.0
+    max_search_delay_seconds: float = 30.0e-6
+    search_points: int = 601
+
+    trials: int = 50
+
+    channel_1_gain: float = 1.0
+    channel_2_gain: float = 0.95
+
+    channel_1_noise_std: float = 0.03
+    channel_2_noise_std: float = 0.03
+
+    fit_gain: bool = False
+    refine_minimum: bool = True
+
+    random_seed: int = 42
+
+    signal_config: SignalConfig = (
+        DEFAULT_SIGNAL_CONFIG
+    )
+
+
+@dataclass(frozen=True)
+class TrialResult:
+    """نتيجة تجربة واحدة."""
+
+    trial_index: int
+
+    true_delay_seconds: float
+    estimated_delay_seconds: float
+
+    timing_error_seconds: float
+    timing_error_microseconds: float
+
+    distance_error_millimeters: float
+
+    minimum_energy: float
+    refined_energy: float | None
+
+
+def validate_simulation_config(
+    config: AnalogSimulationConfig,
+) -> None:
+    """التحقق من إعدادات المحاكاة."""
+    if config.duration_seconds <= 0:
+        raise ValueError(
+            "duration_seconds يجب أن تكون موجبة"
+        )
+
+    if config.numerical_points < 100:
+        raise ValueError(
+            "numerical_points يجب ألا تقل عن 100"
+        )
+
+    if config.min_true_delay_seconds < 0:
+        raise ValueError(
+            "min_true_delay_seconds لا يمكن أن تكون سالبة"
+        )
+
+    if (
+        config.max_true_delay_seconds
+        <= config.min_true_delay_seconds
+    ):
+        raise ValueError(
+            "نطاق التأخير الحقيقي غير صحيح"
+        )
+
+    if config.min_search_delay_seconds < 0:
+        raise ValueError(
+            "min_search_delay_seconds لا يمكن أن تكون سالبة"
+        )
+
+    if (
+        config.max_search_delay_seconds
+        <= config.min_search_delay_seconds
+    ):
+        raise ValueError(
+            "نطاق البحث عن التأخير غير صحيح"
+        )
+
+    if config.search_points < 3:
+        raise ValueError(
+            "search_points يجب ألا تقل عن 3"
+        )
+
+    if config.trials <= 0:
+        raise ValueError(
+            "trials يجب أن تكون أكبر من صفر"
+        )
+
+
+def distance_error_from_timing_error(
+    timing_error_seconds: float,
+    speed_of_sound: float = SPEED_OF_SOUND,
+) -> float:
+    """
+    تحويل خطأ الزمن إلى خطأ مسافة بالميليمتر.
+    """
+    return abs(
+        timing_error_seconds
+        * speed_of_sound
+        * 1000.0
+    )
+
+
+def build_channel_signals(
+    time: np.ndarray,
+    true_delay_seconds: float,
+    config: AnalogSimulationConfig,
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, np.ndarray]:
+    """إنشاء إشارتَي القناتين التناظريتين."""
+
+    source_function = (
+        lambda query_time: generate_continuous_signal(
+            query_time,
+            config=config.signal_config,
+        )
+    )
+
+    # القناة الأولى:
+    # لا يوجد تأخير إضافي.
+    # لا يوجد مرشح.
+    channel_1_config = AnalogChannelConfig(
+        gain=config.channel_1_gain,
+        extra_delay_seconds=0.0,
+        noise_std=config.channel_1_noise_std,lowpass_cutoff_hz=18_000.0
+        #lowpass_cutoff_hz=None,
+    )
+
+    # القناة الثانية:
+    # تحتوي على التأخير الحقيقي.
+    # لا يوجد مرشح.
+    channel_2_config = AnalogChannelConfig(
+        gain=config.channel_2_gain,
+        extra_delay_seconds=(
+            true_delay_seconds
+        ),
+        noise_std=config.channel_2_noise_std,lowpass_cutoff_hz=18_000.0
+#        lowpass_cutoff_hz=None,
+    )
+
+    channel_1 = apply_analog_channel(
+        time=time,
+        source_function=source_function,
+        config=channel_1_config,
+        rng=rng,
+    )
+
+    channel_2 = apply_analog_channel(
+        time=time,
+        source_function=source_function,
+        config=channel_2_config,
+        rng=rng,
+    )
+
+    return channel_1, channel_2
+
+
+def run_single_trial(
+    trial_index: int,
+    config: AnalogSimulationConfig,
+    rng: np.random.Generator,
+) -> tuple[TrialResult, ResidualSearchResult]:
+    """تشغيل تجربة واحدة."""
+
+    time = create_time_axis(
+        start=0.0,
+        stop=config.duration_seconds,
+        points=config.numerical_points,
+    )
+
+    true_delay = float(
+        rng.uniform(
+            config.min_true_delay_seconds,
+            config.max_true_delay_seconds,
+        )
+    )
+
+    reference_signal, observed_signal = (
+        build_channel_signals(
+            time=time,
+            true_delay_seconds=true_delay,
+            config=config,
+            rng=rng,
+        )
+    )
+
+    search_delays = np.linspace(
+        config.min_search_delay_seconds,
+        config.max_search_delay_seconds,
+        config.search_points,
+        dtype=np.float64,
+    )
+
+    search_result = search_minimum_residual(
+        time=time,
+        reference_signal=reference_signal,
+        observed_signal=observed_signal,
+        delays_seconds=search_delays,
+        fit_gain=config.fit_gain,
+        refine=config.refine_minimum,
+    )
+
+    if (
+        config.refine_minimum
+        and search_result.refined_delay_seconds
+        is not None
+    ):
+        estimated_delay = float(
+            search_result.refined_delay_seconds
+        )
+    else:
+        estimated_delay = float(
+            search_result.best_delay_seconds
+        )
+
+    timing_error = (
+        estimated_delay - true_delay
+    )
+
+    distance_error_mm = (
+        distance_error_from_timing_error(
+            timing_error
+        )
+    )
+
+    result = TrialResult(
+        trial_index=trial_index,
+
+        true_delay_seconds=true_delay,
+        estimated_delay_seconds=estimated_delay,
+
+        timing_error_seconds=timing_error,
+        timing_error_microseconds=(
+            timing_error * 1e6
+        ),
+
+        distance_error_millimeters=(
+            distance_error_mm
+        ),
+
+        minimum_energy=(
+            search_result.minimum_energy
+        ),
+
+        refined_energy=(
+            search_result.refined_energy
+        ),
+    )
+
+    return result, search_result
+
+
+def run_simulation(
+    config: AnalogSimulationConfig | None = None,
+) -> list[TrialResult]:
+    """تشغيل مجموعة التجارب."""
+
+    if config is None:
+        config = AnalogSimulationConfig()
+
+    validate_simulation_config(config)
+
+    rng = np.random.default_rng(
+        config.random_seed
+    )
+
+    results: list[TrialResult] = []
+
+    print("=" * 72)
+    print("Continuous Analog Residual-Energy Simulation")
+    print("=" * 72)
+
+    print(
+        "النموذج: طرح تناظري + تكامل طاقة الفرق"
+    )
+
+    print(
+        "المرشحات: غير مستخدمة "
+        "(Unfiltered baseline)"
+    )
+
+    print(
+        f"عدد التجارب: {config.trials}"
+    )
+
+    print(
+        "عدد نقاط الحساب العددي: "
+        f"{config.numerical_points}"
+    )
+
+    print(
+        "نطاق التأخير الحقيقي: "
+        f"{config.min_true_delay_seconds * 1e6:.3f}"
+        " إلى "
+        f"{config.max_true_delay_seconds * 1e6:.3f}"
+        " us"
+    )
+
+    print(
+        "كسب القناة الأولى: "
+        f"{config.channel_1_gain}"
+    )
+
+    print(
+        "كسب القناة الثانية: "
+        f"{config.channel_2_gain}"
+    )
+
+    print(
+        "ضوضاء القناة الأولى: "
+        f"{config.channel_1_noise_std}"
+    )
+
+    print(
+        "ضوضاء القناة الثانية: "
+        f"{config.channel_2_noise_std}"
+    )
+
+    print(
+        "تعويض الكسب: "
+        f"{config.fit_gain}"
+    )
+
+    for trial_index in range(
+        1,
+        config.trials + 1,
+    ):
+        result, _ = run_single_trial(
+            trial_index=trial_index,
+            config=config,
+            rng=rng,
+        )
+
+        results.append(result)
+
+        print(
+            f"\nالتجربة {trial_index}"
+        )
+
+        print(
+            "التأخير الحقيقي: "
+            f"{result.true_delay_seconds * 1e6:.6f}"
+            " us"
+        )
+
+        print(
+            "التأخير المقدّر: "
+            f"{result.estimated_delay_seconds * 1e6:.6f}"
+            " us"
+        )
+
+        print(
+            "خطأ الزمن: "
+            f"{result.timing_error_microseconds:.6f}"
+            " us"
+        )
+
+        print(
+            "خطأ المسافة: "
+            f"{result.distance_error_millimeters:.6f}"
+            " mm"
+        )
+
+    metrics = calculate_metrics(
+        results
+    )
+
+    print_metrics(
+        metrics
+    )
+
+    return results
+
+
+if __name__ == "__main__":
+    run_simulation()

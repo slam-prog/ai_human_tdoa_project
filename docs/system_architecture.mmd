@@ -1,0 +1,72 @@
+flowchart LR
+
+    P[Arduino Timer<br/>Frame Controller]
+
+    M1[Microphone 1]
+    M2[Microphone 2]
+
+    A1[Preamp 1]
+    A2[Preamp 2]
+
+    G1[Analog Record Gate 1]
+    G2[Analog Record Gate 2]
+
+    RH1[Record Head 1<br/>Track 1]
+    RH2[Record Head 2<br/>Track 2]
+
+    TAPE[(Closed Magnetic Tape Loop)]
+
+    PH1[Playback Head 1<br/>Track 1]
+    PH2[Playback Head 2<br/>Track 2]
+
+    R1[Read Preamp 1]
+    R2[Read Preamp 2]
+
+    AG1[Gain Trim 1]
+    AG2[Gain Trim 2]
+
+    SUB[Analog Subtractor<br/>Vdiff = V1 - V2]
+
+    SQ[Analog Squarer<br/>Vdiff²]
+
+    INT[Energy Integrator<br/>∫ Vdiff² dt]
+
+    SH[Sample and Hold<br/>Frame Result]
+
+    ERASE1[Erase Head 1]
+    ERASE2[Erase Head 2]
+
+    P --> G1
+    P --> G2
+
+    M1 --> A1 --> G1 --> RH1
+    M2 --> A2 --> G2 --> RH2
+
+    RH1 --> TAPE
+    RH2 --> TAPE
+
+    TAPE --> PH1
+    TAPE --> PH2
+
+    PH1 --> R1 --> AG1
+    PH2 --> R2 --> AG2
+
+    AG1 --> SUB
+    AG2 --> SUB
+
+    SUB --> SQ --> INT --> SH
+
+    P --> SH
+
+    TAPE --> ERASE1
+    TAPE --> ERASE2
+
+    classDef control fill:#fff2cc,stroke:#b8860b,stroke-width:2px;
+    classDef audio fill:#d9ead3,stroke:#38761d,stroke-width:2px;
+    classDef tape fill:#d9d2e9,stroke:#674ea7,stroke-width:2px;
+    classDef process fill:#cfe2f3,stroke:#1155cc,stroke-width:2px;
+
+    class P control;
+    class M1,M2,A1,A2,G1,G2,RH1,RH2,PH1,PH2,R1,R2,AG1,AG2,ERASE1,ERASE2 audio;
+    class TAPE tape;
+    class SUB,SQ,INT,SH process;
