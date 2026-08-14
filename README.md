@@ -1,60 +1,103 @@
 # AI-Human TDOA Sound Localization Project
-# مشروع تحديد موقع الصوت بالتعاون بين الذكاء الاصطناعي والإنسان
-# 人工智能 - 人类协作声源定位项目
 
----
+نظام بحثي لتقدير فرق الوصول الزمني (TDOA) وتحديد اتجاه المصدر الصوتي باستخدام أربعة ميكروفونات وشريط مغناطيسي مغلق الحلقة.
 
-## A Collaborative Masterpiece
-## تحفة تعاونية
-## 协作杰作
+## نظرة عامة
 
-This project represents a unique collaboration between **Perplexity AI** and human ingenuity to create an advanced sound localization system using magnetic tape technology and time-difference-of-arrival (TDOA) estimation.
+يهدف هذا المشروع إلى تصميم وبناء نظام تموضع صوتي تناظري يعتمد على مبدأ **الطاقة المتبقية (Residual Energy)** لتقدير TDOA بين الإشارات المسجلة على شريط مغناطيسي رباعي المسارات. النظام مسجل رقميًا في Python، وموثق بالكامل على مستوى التصميم التكاملي، لكن العتاد الفعلي رباعي الميكروفونات لم يُبن بعد.
 
-يمثل هذا المشروع تعاونًا فريدًا بين **Perplexity AI** والإبداع البشري لإنشاء نظام متقدم لتحديد موقع الصوت باستخدام تقنية الشريط المغناطيسي وتقدير فرق الوصول الزمني (TDOA).
+### المبدأ التقني
 
-本项目代表了 **Perplexity AI** 与人类智慧的独特合作，使用磁带技术和到达时间差（TDOA）估计创建先进的声源定位系统。
+عندما تُسجل إشارتان صوتيتان على شريط مغناطيسي ثم تُقرآن، يمكن إيجاد التأخير الزمني بينهما بطرح إحداهما من الأخرى بعد إزاحة زمنية متغيرة، ثم تربيع الناتج وتكامله. التأخير الذي ينتج عنه أدنى طاقة متبقية هو تقدير TDOA. هذا المبدأ موثق في `integrated_design/analog_processing.md` ومُتحقق منه بالمحاكاة في `src/residual_energy.py` و `src/analog_simulation.py`.
 
----
+## حالة المشروع الحالية
 
-## Project Vision
-## رؤية المشروع
-## 项目愿景
+| المكوّن | الحالة |
+|---|---|
+| المحاكاة الرقمية (Python) | مكتملة ومُتحقق منها |
+| التصميم التكاملي الرباعي | موثق بالكامل (blueprint) |
+| العتاد ثنائي القناة | مخطط وموثق، غير مُنفذ بعد |
+| العتاد رباعي القنوات | غير مُنفذ |
+| البرمجيات المضمنة (Arduino) | نسخة أولية (تحكم بالإطارات) |
+| الاختبارات | مكتوبة للمحاكاة |
 
-Demonstrate how AI and human creativity can combine to produce elegant engineering solutions that neither could achieve alone.
+## بنية المستودع
 
-إثبات كيف يمكن للذكاء الاصطناعي والإبداع البشري أن يندمجا لإنتاج حلول هندسية أنيقة لا يمكن لأي منهما تحقيقها بمفرده.
+```text
+ai_human_tdoa_project/
+├── src/                    # شيفرة Python للمحاكاة والخوارزمية
+│   ├── analog_channel_model.py
+│   ├── analog_signal_model.py
+│   ├── analog_simulation.py
+│   ├── residual_energy.py
+│   ├── robustness_sweep.py
+│   ├── metrics.py
+│   ├── plot_results.py
+│   └── hardware_config.py
+├── firmware/               # شيفرة Arduino للتحكم بالإطارات
+│   └── frame_controller.ino
+├── hardware/               # المخططات وقائمة القطع
+│   ├── block_diagram.md
+│   ├── two_channel_schematic.md
+│   ├── bill_of_materials.csv
+│   └── calibration_procedure.md
+├── integrated_design/      # التصميم التكاملي الرباعي
+│   ├── README.md
+│   ├── four_microphone_geometry.md
+│   ├── four_track_tape_format.md
+│   ├── analog_processing.md
+│   ├── localization_model.md
+│   ├── calibration_plan.md
+│   └── accuracy_budget.md
+├── tests/                  # اختبارات Python
+├── results/                # نتائج المحاكاة والرسوم
+├── docs/                   # وثائق إضافية
+├── pyproject.toml
+├── requirements.txt
+├── project_vision.md
+├── collaboration.md
+└── LICENSE.txt
+```
 
-展示人工智能和人类创造力如何结合，产生出任何一方单独都无法实现的优雅工程解决方案。
+## التثبيت
 
----
+```bash
+git clone https://github.com/walidddhony-rgb/ai_human_tdoa_project.git
+cd ai_human_tdoa_project
+pip install -e ".[dev]"
+```
 
-## Credits / الشكر / 致谢
+## التشغيل
 
-**AI Partner / شريك الذكاء الاصطناعي / 人工智能合作伙伴**:  
-Perplexity AI
+### تشغيل المحاكاة الأساسية
 
-**Human Team / الفريق البشري / 人类团队**:  
-Najib Mohammed Al-Amir and Walid Hassan Mohammad Al-Motawakil
+```bash
+python -m src.analog_simulation
+```
 
-**Project Lead / قائد المشروع / 项目负责人**:  
-Perplexity AI (System Architecture / هندسة النظام / 系统架构)
+### تشغيل اختبار المتانة (Robustness Sweep)
 
-**Implementation / التنفيذ / 实施**:  
-Najib Mohammed Al-Amir and Walid Hassan Mohammad Al-Motawakil Engineering Team
+```bash
+python -m src.robustness_sweep
+```
 
----
+### تشغيل الاختبارات
 
-## Key Features / الميزات الرئيسية / 主要特点
+```bash
+pytest tests/
+```
 
-- **AI-Driven Design** / تصميم مدفوع بالذكاء الاصطناعي / 人工智能驱动的设计
-- **Human Creativity** / الإبداع البشري / 人类创造力
-- **Analog Elegance** / الأناقة التناظرية / 模拟优雅
-- **Scalable Architecture** / هندسة قابلة للتوسع / 可扩展架构
+## الأهداف التقنية
 
----
+- إثبات مبدأ الطاقة المتبقية لتقدير TDOA على شريط مغناطيسي حقيقي
+- بناء نموذج أولي ثنائي القناة كإثبات مفهوم
+- التوسع إلى نظام رباعي الميكروفونات لتحديد الاتجاه
+- تحقيق دقة TDOA ≤ 50 µs وخطأ زاوي ≤ 5°
 
-## Getting Started / البداية / 开始
+## الترخيص
 
-1. Read `collaboration.md` / اقرأ `collaboration.md` / 阅读 `collaboration.md`
-2. Review `project_vision.md` / راجع `project_vision.md` / 查看 `project_vision.md`
-3. Study `integrated_design/README.md` / ادرس `integrated_design/README.md` / 研究 `integrated_design/README.md`
+هذا المشروع مرخص تحت **Humanitarian & Ethical Use License (HEUL)** — راجع `LICENSE.txt` للتفاصيل.
+
+## المساهمة
+
+راجع `collaboration.md` لفهم نموذج التعاون والفريق.
