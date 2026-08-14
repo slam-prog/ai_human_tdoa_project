@@ -4,12 +4,12 @@ TLV9062,Dual Op-Amp,5,Texas Instruments,TLV9062IDR,5.5V 10MHz
 ADG884,Dual SPDT Audio Switch,2,Analog Devices,ADG884BCPZ,Low voltage
 ADL5391,Analog Multiplier,1,Analog Devices,ADL5390-EVALZ,Breakout recommended
 CMA-4544PF-W,Electret Microphone,4,CUI Inc,CMA-4544PF-W,Matched pair
-Record Head,4-track magnetic head,1,To be selected,,"Based on tape width"
-Playback Head,4-track magnetic head,1,To be selected,,"Matched to record head"
-Erase Head,4-track magnetic head,1,To be selected,,"Matched to record head"
-Magnetic Tape,Audio tape,1,To be selected,,"Closed-loop format"
+Record Head,4-track magnetic head,1,To be selected,,Based on tape width
+Playback Head,4-track magnetic head,1,To be selected,,Matched to record head
+Erase Head,4-track magnetic head,1,To be selected,,Matched to record head
+Magnetic Tape,Audio tape,1,To be selected,,Closed-loop format
 5V Power Supply,Regulated supply,1,Generic,>=1A,For analog circuits
-Motor Supply,Separate supply,1,Generic,,"For tape transport"
-Resistors 0.1%,Matched sets,Multiple,Vishay,,"For subtractors"
-Capacitors,Ceramic/Electrolytic,Multiple,Generic,,"Decoupling and integration"
-Potentiometers,Gain trim,Multiple,Generic,,"For channel matching"
+Motor Supply,Separate supply,1,Generic,,For tape transport
+Resistors 0.1%,Matched sets,Multiple,Vishay,,For subtractors
+Capacitors,Ceramic/Electrolytic,Multiple,Generic,,Decoupling and integration
+Potentiometers,Gain trim,Multiple,Generic,,For channel matching
