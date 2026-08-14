@@ -14,32 +14,32 @@ Design and document a complete analog system that:
 
 ```text
 4 Microphones
-      ↓
+↓
 4 Preamplifiers
-      ↓
+↓
 4 Analog Recording Gates (common Arduino control)
-      ↓
+↓
 4-track Record Head
-      ↓
+↓
 4 parallel magnetic tracks on a single tape
-      ↓
+↓
 Closed tape loop
-      ↓
+↓
 4-track Playback Head
-      ↓
+↓
 4 Read Preamplifiers + Gain Trim
-      ↓
+↓
 Analog TDOA Processing:
-    - Reference channel selection
-    - Delay compensation (mechanical or electronic)
-    - Subtraction
-    - Squaring
-    - Integration
-      ↓
+  - Reference channel selection
+  - Delay compensation (mechanical or electronic)
+  - Subtraction
+  - Squaring
+  - Integration
+↓
 Energy minima → TDOA estimates
-      ↓
+↓
 Localization algorithm (Arduino or external PC)
-      ↓
+↓
 Erase heads → tape ready for next frame
 ```
 
@@ -56,9 +56,10 @@ Erase heads → tape ready for next frame
 - `four_track_tape_format.md`: tape format, frame structure, and timing.
 - `analog_processing.md`: analog front-end, subtractor, squarer, integrator.
 - `localization_model.md`: TDOA-to-position model and error analysis.
-- `hardware_bom.md`: bill of materials with suggested parts.
 - `calibration_plan.md`: calibration procedure for gains, delays, and heads.
 - `accuracy_budget.md`: theoretical accuracy limits and error sources.
+
+> **Note**: The bill of materials is located at [`../hardware/bill_of_materials.csv`](../hardware/bill_of_materials.csv), not inside this folder.
 
 ## Status
 
