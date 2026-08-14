@@ -1,25 +1,35 @@
 [build-system]
-requires = ["setuptools>=45", "wheel"]
+requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "myps"
+name = "ai-human-tdoa-project"
 version = "0.1.0"
-description = "Magnetic Tape TDOA Sound Localization System"
+description = "Research prototype for analog residual-energy TDOA sound localization using magnetic tape."
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-    "numpy>=1.21",
-    "scipy>=1.7",
-    "matplotlib>=3.4",
+  "numpy>=1.21",
+  "scipy>=1.7",
+  "matplotlib>=3.4",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=6.2",
-    "black>=21.0",
-    "flake8>=3.9",
+  "pytest>=7.0",
+  "black>=24.0",
+  "flake8>=7.0",
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = [
+  "analog_channel_model",
+  "analog_signal_model",
+  "analog_simulation",
+  "hardware_config",
+  "metrics",
+  "plot_results",
+  "residual_energy",
+  "robustness_sweep",
+]
